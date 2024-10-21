@@ -1,6 +1,6 @@
 const {Schema, model} = require('mongoose');
 
-const stockSchema = new Schema({
+const stockDataSchema = new Schema({
     date: { type: Date, required: true },
     symbol: { type: String, required: true },
     series: { type: String, required: true },
@@ -16,8 +16,8 @@ const stockSchema = new Schema({
     trades: { type: Number, required: true },
     deliverable: { type: Number, required: true },
     percent_deliverable: { type: Number, required: true }
-    });
+}, { collection: 'stock_data' });
 
-const Stock = model('Stock', stockSchema, 'stock_data');
+const StockData = model('StockData', stockDataSchema);
 
-module.exports = Stock;
+module.exports = StockData;
