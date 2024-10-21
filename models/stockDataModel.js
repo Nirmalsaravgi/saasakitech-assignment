@@ -16,7 +16,7 @@ const stockSchema = new Schema({
     trades: { type: Number, required: true },
     deliverable: { type: Number, required: true },
     percent_deliverable: { type: Number, required: true }
-    }, {timestamps: true});
+    });
 
 const Stock = model('Stock', stockSchema, 'stock_data');
 
