@@ -4,7 +4,9 @@ const {connectToMongoDB} = require('./connect');
 const csvRoute = require("./routes/csvDataRouter");
 const dataRouter = require("./routes/dataRetrievalRouter");
 
-connectToMongoDB(process.env.MONGODB_URI).then(console.log("Mongodb Connected"));
+connectToMongoDB(process.env.MONGODB_URI)
+  .then(() => console.log("Mongodb Connected"))
+  .catch((err) => console.error("Error connecting to MongoDB:", err));
 
 const app = express();
 const PORT = process.env.PORT || 8000;
