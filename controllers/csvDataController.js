@@ -1,27 +1,9 @@
 const fs = require('fs');
-const {parse} = require('csv-parse');
-const StockData = require('../models/stockDataModel');
+const { parse } = require('csv-parse');
 const path = require('path');
+const { normalizeKeys, validateRow, saveStockData } = require('../utils/utils');
 
-
-const csvColumns = ['Date', 'Symbol', 'Series', 'Prev Close', 'Open', 'High', 'Low', 'Last', 'Close', 'VWAP',
-    'Volume', 'Turnover', 'Trades', 'Deliverable', '%Deliverable'];
-
-function normalizeKeys(row) {
-    return Object.keys(row).reduce((acc, key) => {
-        acc[key.trim()] = row[key]; // Trim whitespace from keys
-        return acc;
-    }, {});
-}
-
-function validateRow(row) {
-    const isValidDate = !isNaN(Date.parse(row['Date']));
-    const isNumeric = (val) => !isNaN(parseFloat(val)) && isFinite(val);
-
-    return isValidDate && [
-        'Prev Close', 'Open', 'High', 'Low', 'Last', 'Close', 'VWAP', 'Volume', 'Turnover', 'Trades', 'Deliverable', '%Deliverable'
-    ].every(col => isNumeric(row[col]));
-}
+const csvColumns = ['Date', 'Symbol', 'Series', 'Prev Close', 'Open', 'High', 'Low', 'Last', 'Close', 'VWAP', 'Volume', 'Turnover', 'Trades', 'Deliverable', '%Deliverable'];
 
 async function uploadStockData(req, res) {
     const file = req.file;
@@ -29,12 +11,11 @@ async function uploadStockData(req, res) {
         return res.status(400).json({ message: 'Please upload a CSV file.' });
     }
 
-    const results = [];
     let successCount = 0;
     let failureCount = 0;
     const errors = [];
 
-    const savePromises = []; // Collect all the save promises here
+    const savePromises = [];
 
     fs.createReadStream(file.path)
         .pipe(parse({ columns: true }))
@@ -42,49 +23,38 @@ async function uploadStockData(req, res) {
             row = normalizeKeys(row);
 
             // Validate the required columns are present
-            if (!csvColumns.every(col => Object.keys(row).includes(col))) {
-                errors.push({ row, reason: 'Missing required columns' });
+            const missingColumns = csvColumns.filter(col => !Object.keys(row).includes(col));
+
+            if (missingColumns.length > 0) {
+                errors.push({ 
+                    row, 
+                    reason: 'Missing required columns', 
+                    missingColumns // Include the missing columns in the error object
+                });
                 failureCount++;
-                return; // Skip this row
+                return;
             }
 
             // Data validation
-            const isValid = validateRow(row);
-            if (isValid) {
-                const stockData = new StockData({
-                    date: new Date(row['Date']),
-                    symbol: row['Symbol'],
-                    series: row['Series'],
-                    prev_close: parseFloat(row['Prev Close']),
-                    open: parseFloat(row['Open']),
-                    high: parseFloat(row['High']),
-                    low: parseFloat(row['Low']),
-                    last: parseFloat(row['Last']),
-                    close: parseFloat(row['Close']),
-                    vwap: parseFloat(row['VWAP']),
-                    volume: parseInt(row['Volume'], 10),
-                    turnover: parseFloat(row['Turnover']),
-                    trades: parseInt(row['Trades'], 10),
-                    deliverable: parseInt(row['Deliverable'], 10),
-                    percent_deliverable: parseFloat(row['%Deliverable'])
-                });
-
-                // Save to MongoDB and push the promise to savePromises
-                const savePromise = stockData.save().then(() => {
-                    successCount++;
-                }).catch((err) => {
-                    errors.push({ row, reason: 'Database save failed', error: err.message });
-                    failureCount++;
-                });
+            const validation = validateRow(row);
+            if (validation.isValid) {
+                const savePromise = saveStockData(row)
+                    .then(result => {
+                        if (result.success) {
+                            successCount++;
+                        } else {
+                            errors.push({reason: 'Database save failed', error: result.error });
+                            failureCount++;
+                        }
+                    });
 
                 savePromises.push(savePromise);
             } else {
-                errors.push({ row, reason: 'Validation failed' });
+                errors.push({reason: 'Validation failed', details: validation.errors });
                 failureCount++;
             }
         })
         .on('end', async () => {
-            // Wait for all save operations to complete
             await Promise.all(savePromises);
 
             // Send response once all data has been processed
@@ -96,15 +66,10 @@ async function uploadStockData(req, res) {
             });
         })
         .on('error', (err) => {
-            // Handle error and send a response
             return res.status(500).json({ message: 'Error processing file', error: err.message });
         });
-};
-
-
+}
 
 module.exports = {
-    uploadStockData,
-    normalizeKeys,
-    validateRow
-}
+    uploadStockData
+};

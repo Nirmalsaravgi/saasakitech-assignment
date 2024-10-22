@@ -1,12 +1,13 @@
+require('dotenv').config();
 const express = require("express");
 const {connectToMongoDB} = require('./connect');
 const csvRoute = require("./routes/csvDataRouter");
 const dataRouter = require("./routes/dataRetrievalRouter");
 
-connectToMongoDB("mongodb://localhost:27017/stockData").then(console.log("Mongodb Connected"));
+connectToMongoDB(process.env.MONGODB_URL).then(console.log("Mongodb Connected"));
 
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
 app.use('/', csvRoute);
 app.use('/api', dataRouter)

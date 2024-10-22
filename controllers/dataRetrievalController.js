@@ -10,12 +10,23 @@ function parseDate(dateStr) {
 async function getHighestVolume(req, res) {
     const { start_date, end_date, symbol } = req.query;
 
-    const query = {};
-    if (start_date || end_date) {
-        query.date = {};
-        if (start_date) query.date.$gte = parseDate(start_date);
-        if (end_date) query.date.$lte = parseDate(end_date);
+    // Check if start_date or end_date is missing and return specific error messages
+    if (!start_date && !end_date) {
+        return res.status(400).json({ message: 'Both start_date and end_date are required' });
+    } else if (!start_date) {
+        return res.status(400).json({ message: 'start_date is required' });
+    } else if (!end_date) {
+        return res.status(400).json({ message: 'end_date is required' });
     }
+
+    const query = {
+        date: {
+            $gte: parseDate(start_date),
+            $lte: parseDate(end_date)
+        }
+    };
+
+    // If symbol is provided, add it to the query
     if (symbol) {
         query.symbol = symbol;
     }
@@ -29,27 +40,36 @@ async function getHighestVolume(req, res) {
             date: result[0].date,
             symbol: result[0].symbol,
             volume: result[0].volume
-        }
-        res.json({ highest_volume:highestVolume });
+        };
+        res.json({ highest_volume: highestVolume });
     } catch (error) {
         res.status(500).json({ message: 'Error retrieving data', error: error.message });
     }
 }
 
+
 // API 2: Get average closing price for a symbol
 async function getAverageClose(req, res) {
     const { start_date, end_date, symbol } = req.query;
 
-    if (!symbol) {
+    // Check if all required parameters are present
+    if (!symbol && !start_date && !end_date) {
+        return res.status(400).json({ message: 'Symbol, start_date, and end_date are required' });
+    } else if (!symbol) {
         return res.status(400).json({ message: 'Symbol is required' });
+    } else if (!start_date) {
+        return res.status(400).json({ message: 'start_date is required' });
+    } else if (!end_date) {
+        return res.status(400).json({ message: 'end_date is required' });
     }
 
-    const query = { symbol: symbol };
-    if (start_date || end_date) {
-        query.date = {};
-        if (start_date) query.date.$gte = parseDate(start_date);
-        if (end_date) query.date.$lte = parseDate(end_date);
-    }
+    const query = {
+        symbol: symbol,
+        date: {
+            $gte: parseDate(start_date),
+            $lte: parseDate(end_date)
+        }
+    };
 
     try {
         const result = await StockData.aggregate([
@@ -67,16 +87,28 @@ async function getAverageClose(req, res) {
     }
 }
 
+
 // API 3: Get average VWAP for a symbol or date range
 async function getAverageVWAP(req, res) {
     const { start_date, end_date, symbol } = req.query;
 
-    const query = {};
-    if (start_date || end_date) {
-        query.date = {};
-        if (start_date) query.date.$gte = parseDate(start_date);
-        if (end_date) query.date.$lte = parseDate(end_date);
+    // Check if start_date and end_date are provided
+    if (!start_date && !end_date) {
+        return res.status(400).json({ message: 'Both start_date and end_date are required' });
+    } else if (!start_date) {
+        return res.status(400).json({ message: 'start_date is required' });
+    } else if (!end_date) {
+        return res.status(400).json({ message: 'end_date is required' });
     }
+
+    const query = {
+        date: {
+            $gte: parseDate(start_date),
+            $lte: parseDate(end_date)
+        }
+    };
+
+    // If symbol is provided, add it to the query
     if (symbol) {
         query.symbol = symbol;
     }
@@ -96,6 +128,7 @@ async function getAverageVWAP(req, res) {
         res.status(500).json({ message: 'Error calculating average VWAP', error: error.message });
     }
 }
+
 
 module.exports = {
     getHighestVolume,
