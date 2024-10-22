@@ -57,6 +57,13 @@ async function uploadStockData(req, res) {
         .on('end', async () => {
             await Promise.all(savePromises);
 
+            // Delete the uploaded file after inserting into database
+            fs.unlink(file.path, (err) => {
+                if (err) {
+                    console.error(`Error deleting file: ${err.message}`);
+                } 
+            });
+
             // Send response once all data has been processed
             res.json({
                 totalRecords: successCount + failureCount,
