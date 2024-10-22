@@ -1,7 +1,7 @@
 
 # Links
 
-Live Server link - https://saasakitech-assignment.onrender.com
+Live Server domain - https://saasakitech-assignment.onrender.com
 
 API Documentation - https://documenter.getpostman.com/view/33101301/2sAXxY4oqL
 
