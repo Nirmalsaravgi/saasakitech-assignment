@@ -4,7 +4,8 @@ const {connectToMongoDB} = require('./connect');
 const csvRoute = require("./routes/csvDataRouter");
 const dataRouter = require("./routes/dataRetrievalRouter");
 
-connectToMongoDB(process.env.MONGODB_URI)
+
+connectToMongoDB("mongodb+srv://nirmalsaracgi:MwGqHC8oXyyH9TCQ@saasakiassignmentdb.e6zkb.mongodb.net/SaasakiassignmentDb?retryWrites=true&w=majority&appName=SaasakiassignmentDb")
   .then(() => console.log("Mongodb Connected"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
